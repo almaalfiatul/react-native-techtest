@@ -9,24 +9,26 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  Pressable
 } from "react-native";
-
-interface Employee {
-  id: number;
-  name: string;
-  username: string;
-  email: string;
-  position: string;
-  experience: number;
-  rating: string;
-  salary: number;
-  avatar: string;
-  status: "Permanent" | "Contract";
-}
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import EmployeeCard from "@/components/EmployeeCard";
+import { Employee } from "@/types/Employee";
 
 const PAGE_SIZE = 5;
 
-const HomeScreen = () => {
+type RootStackParamList = {
+  Home: undefined;
+  EmployeeDetail: { employee: Employee };
+};
+
+type HomeScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "Home"
+>;
+
+const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {
+  const [pressedButtonId, setPressedButtonId] = useState<number | null>(null);
   const [users, setUsers] = useState<Employee[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<Employee[]>([]);
   const [page, setPage] = useState(1);
@@ -42,14 +44,22 @@ const HomeScreen = () => {
       const data = await res.json();
 
       const formatted: Employee[] = data.map((u: any) => ({
-        ...u,
-        position: "Software Engineer",
-        experience: Math.floor(Math.random() * 10) + 1,
-        rating: (4 + Math.random()).toFixed(1),
-        salary: Math.floor(Math.random() * 3000000) + 3000000,
-        avatar: `https://i.pravatar.cc/150?img=${u.id}`,
-        status: Math.random() > 0.5 ? "Permanent" : "Contract",
-      }));
+      ...u,
+      position: "Software Engineer",
+      experience: Math.floor(Math.random() * 10) + 1,
+      rating: (4 + Math.random()).toFixed(1),
+      salary: Math.floor(Math.random() * 3000000) + 3000000,
+      avatar: `https://i.pravatar.cc/150?img=${u.id}`,
+      status: Math.random() > 0.5 ? "Permanent" : "Contract",
+
+      address: {
+        street: u.address?.street ?? "",
+        suite: u.address?.suite ?? "",
+        city: u.address?.city ?? "",
+        zipcode: u.address?.zipcode ?? "",
+      }
+    }));
+
 
       setUsers(formatted);
       setFilteredUsers(formatted);
@@ -91,15 +101,13 @@ const HomeScreen = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6A5AE0" />
+        <ActivityIndicator size="large" color="#003D82" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Employee List</Text>
-
       <TextInput
         style={styles.search}
         placeholder="Search employee..."
@@ -113,20 +121,7 @@ const HomeScreen = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <View style={styles.row}>
-              <Image source={{ uri: item.avatar }} style={styles.avatar} />
-
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.position}>
-                  {item.position} • {item.experience} yrs exp
-                </Text>
-              </View>
-
-              <View style={styles.ratingTag}>
-                <Text style={styles.ratingText}>{item.rating}</Text>
-              </View>
-            </View>
+            <EmployeeCard employee={item} />
 
             <View style={styles.infoBox}>
               <View>
@@ -144,11 +139,18 @@ const HomeScreen = () => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.button}>
+            <Pressable
+              onPress={() => navigation.navigate("EmployeeDetail", { employee: item })}
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+              ]}
+            >
               <Text style={styles.btnText}>View Details</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
+
       />
 
       <View style={{ paddingBottom: 10 }}>
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#A5C4E8",
   },
 
   card: {
@@ -244,15 +246,19 @@ const styles = StyleSheet.create({
   },
 
   ratingTag: {
-    backgroundColor: "#EEE6FF",
+    backgroundColor: "#E6F0FA",
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 12,
   },
 
   ratingText: {
-    color: "#6A5AE0",
+    color: "#003D82",
     fontWeight: "700",
+  },
+
+  buttonPressed: {
+    backgroundColor: "#264490",
   },
 
   infoBox: {
@@ -287,14 +293,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-
   button: {
-    backgroundColor: "#6A5AE0",
+    backgroundColor: "#003D82",
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 18,
     alignItems: "center",
   },
+
 
   btnText: {
     color: "#fff",
@@ -327,7 +333,7 @@ const styles = StyleSheet.create({
   },
 
   activePage: {
-    backgroundColor: "#6A5AE0",
+    backgroundColor: "#003D82",
   },
 
   activePageText: {
