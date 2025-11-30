@@ -136,8 +136,6 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
 
       <View style={styles.header}>
         <Text style={styles.email}>{userEmail}</Text>
-
-        {/* Tombol Logout sebagai icon bulat */}
         <TouchableOpacity
           style={styles.logoutIcon}
           onPress={() => setShowProfileMenu(!showProfileMenu)}

@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Image
+} from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/AppNavigator";
 import { validateEmail, validatePassword } from "@/utils/validators";
 import { loginWithEmail, loginWithGoogleCredential } from "@/services/auth.service";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as AuthSession from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -21,23 +30,16 @@ export default function LoginScreen({ navigation }: Props) {
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: "795457693256-djovcb5out0gd5ce30qljnoekgg7qmil.apps.googleusercontent.com",
     redirectUri: "https://auth.expo.io/@alma.alfiatul/react-native-techtest",
+    scopes: ["profile", "email"],
   });
 
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
-      // destructuring user dan token
       const { user, token } = await loginWithGoogleCredential(idToken);
-      console.log("Logged in user:", user);
-      console.log("Token:", token);
-
-      // simpan email di AsyncStorage
       await AsyncStorage.setItem("userEmail", user.email || "");
-
-      // navigasi ke Home
       navigation.replace("Home", { email: user.email || "" });
     } catch (err) {
-      console.error(err);
       setError("Google login failed");
     } finally {
       setLoading(false);
@@ -45,32 +47,13 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   useEffect(() => {
-    console.log("Google Response:", response);
-
     if (response?.type === "success") {
       const idToken = response.authentication?.idToken;
       if (!idToken) {
         setError("Google token missing");
         return;
       }
-
       handleGoogleLogin(idToken);
-
-      (async () => {
-        setLoading(true);
-        try {
-          const { user } = await loginWithGoogleCredential(idToken);
-          console.log("Logged in user (IIFE):", user);
-
-          await AsyncStorage.setItem("userEmail", user.email || "");
-          navigation.replace("Home", { email: user.email || "" });
-        } catch (err) {
-          console.error(err);
-          setError("Google sign-in failed");
-        } finally {
-          setLoading(false);
-        }
-      })();
     }
   }, [response]);
 
@@ -80,16 +63,10 @@ export default function LoginScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      // destructuring user dan token
       const { user, token } = await loginWithEmail(email, password);
-
-      // simpan email di AsyncStorage
       await AsyncStorage.setItem("userEmail", user.email || email);
-
-      // navigasi ke Home
       navigation.replace("Home", { email: user.email || "" });
     } catch (err: any) {
-      console.error(err);
       setError(err.message || "Login failed");
     } finally {
       setLoading(false);
@@ -98,50 +75,136 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Image source={require('../assets/image1.png')} style={styles.logo} />
+      <Text style={styles.subtitle}>Enter valid username & password to continue</Text>
 
-      <TextInput
-        placeholder="Email"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Password"
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Email"
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Password"
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
-      <TouchableOpacity style={styles.button} onPress={handleEmailLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
+      <TouchableOpacity style={styles.loginBtn} onPress={handleEmailLogin} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Login</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: "#4285F4" }]}
-        onPress={() => promptAsync()}
-        disabled={!request || loading}
-      >
-        <Text style={styles.buttonText}>Sign in with Google</Text>
+      <Text style={styles.or}>OR</Text>
+
+      <TouchableOpacity style={styles.googleBtn} onPress={() => promptAsync()} disabled={!request || loading}>
+        <Text style={styles.googleText}>Login with Google</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register")} style={{ marginTop: 12 }}>
-        <Text>Don't have an account? Register</Text>
+      <TouchableOpacity onPress={() => navigation.navigate("Register")}> 
+        <Text style={styles.footerText}>Don't have an account? <Text style={styles.signUp}>Sign Up</Text></Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, flex: 1, justifyContent: "center" },
-  title: { fontSize: 24, marginBottom: 20, textAlign: "center" },
-  input: { borderWidth: 1, padding: 12, borderRadius: 8, marginTop: 10 },
-  button: { backgroundColor: "#111", padding: 14, borderRadius: 8, marginTop: 16, alignItems: "center" },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  error: { color: "red", marginTop: 8 },
+  container: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+    backgroundColor: "#F7F9FC",
+  },
+
+  header: {
+    fontSize: 32,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  subtitle: {
+    textAlign: "center",
+    color: "#6B7280",
+    marginBottom: 30,
+  },
+
+  logo: {
+    width: 200,
+    height: 200,
+    resizeMode: "contain",
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+
+  inputContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  input: {
+    height: 44,
+  },
+
+  error: {
+    color: "red",
+    marginTop: 4,
+  },
+
+  loginBtn: {
+    backgroundColor: "#003D82",
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 10,
+    alignItems: "center",
+  },
+
+  loginText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  or: {
+    textAlign: "center",
+    marginVertical: 14,
+    color: "#6B7280",
+  },
+
+  googleBtn: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  googleText: {
+    fontWeight: "600",
+  },
+
+  footerText: {
+    textAlign: "center",
+    marginTop: 20,
+    color: "#6B7280",
+  },
+  
+  signUp: {
+    color: "#003D82",
+    fontWeight: "600",
+  },
 });

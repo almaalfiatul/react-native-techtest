@@ -23,7 +23,8 @@ export default function AppNavigator({ initialToken }: AppNavigatorProps) {
     <Stack.Navigator initialRouteName={initialToken ? "Home" : "Login"}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Employee List" }} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} 
+        options={{ title: "Sign Up" }} />
       <Stack.Screen
         name="EmployeeDetail"
         component={DetailScreen}
