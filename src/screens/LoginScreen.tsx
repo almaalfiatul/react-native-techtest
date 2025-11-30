@@ -6,6 +6,7 @@ import { validateEmail, validatePassword } from "@/utils/validators";
 import { loginWithEmail, loginWithGoogleCredential } from "@/services/auth.service";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,10 +26,15 @@ export default function LoginScreen({ navigation }: Props) {
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
+      // destructuring user dan token
       const { user, token } = await loginWithGoogleCredential(idToken);
       console.log("Logged in user:", user);
       console.log("Token:", token);
 
+      // simpan email di AsyncStorage
+      await AsyncStorage.setItem("userEmail", user.email || "");
+
+      // navigasi ke Home
       navigation.replace("Home", { email: user.email || "" });
     } catch (err) {
       console.error(err);
@@ -55,6 +61,8 @@ export default function LoginScreen({ navigation }: Props) {
         try {
           const { user } = await loginWithGoogleCredential(idToken);
           console.log("Logged in user (IIFE):", user);
+
+          await AsyncStorage.setItem("userEmail", user.email || "");
           navigation.replace("Home", { email: user.email || "" });
         } catch (err) {
           console.error(err);
@@ -72,10 +80,14 @@ export default function LoginScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await loginWithEmail(email, password);
-      console.log("Email login success:", email);
+      // destructuring user dan token
+      const { user, token } = await loginWithEmail(email, password);
 
-      navigation.replace("Home", { email });
+      // simpan email di AsyncStorage
+      await AsyncStorage.setItem("userEmail", user.email || email);
+
+      // navigasi ke Home
+      navigation.replace("Home", { email: user.email || "" });
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Login failed");

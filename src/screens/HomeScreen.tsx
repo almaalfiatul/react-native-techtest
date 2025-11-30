@@ -9,17 +9,23 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
-  Pressable
+  Pressable,
+  Modal,
+  TouchableWithoutFeedback
 } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import EmployeeCard from "@/components/EmployeeCard";
 import { Employee } from "@/types/Employee";
+import { FontAwesome } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PAGE_SIZE = 5;
 
 type RootStackParamList = {
   Home: undefined;
   EmployeeDetail: { employee: Employee };
+  Login: undefined;
+  Register: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<
@@ -28,7 +34,8 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<
 >;
 
 const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) => {
-  const [pressedButtonId, setPressedButtonId] = useState<number | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [users, setUsers] = useState<Employee[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<Employee[]>([]);
   const [page, setPage] = useState(1);
@@ -76,6 +83,14 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    const loadEmail = async () => {
+      const email = await AsyncStorage.getItem("userEmail");
+      if (email) setUserEmail(email);
+    };
+    loadEmail();
+  }, []);
+
   const formatRupiah = (value: number) =>
     "Rp " + value.toLocaleString("id-ID");
 
@@ -86,6 +101,16 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
     setFilteredUsers(filter);
     setPage(1);
   }, [search]);
+
+  const handleLogout = async () => { 
+    try { 
+      await AsyncStorage.removeItem("authToken"); 
+      await AsyncStorage.removeItem("userEmail"); 
+      navigation.replace("Login"); 
+    } catch (err) { 
+      console.error("Failed to logout", err); 
+    } 
+  };
 
   const start = (page - 1) * PAGE_SIZE;
   const end = start + PAGE_SIZE;
@@ -108,6 +133,51 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
 
   return (
     <View style={styles.container}>
+
+      <View style={styles.header}>
+        <Text style={styles.email}>{userEmail}</Text>
+
+        {/* Tombol Logout sebagai icon bulat */}
+        <TouchableOpacity
+          style={styles.logoutIcon}
+          onPress={() => setShowProfileMenu(!showProfileMenu)}
+        >
+          <FontAwesome name="user-circle" size={28} color="#003D82" />
+        </TouchableOpacity>
+
+        <Modal
+          visible={showProfileMenu}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowProfileMenu(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setShowProfileMenu(false)}>
+            <View style={styles.modalBackground}>
+              <TouchableWithoutFeedback>
+                <View style={styles.profileMenu}>
+                  
+                  <Text style={styles.profileTitle}>Account</Text>
+
+                  <View style={styles.emailBox}>
+                    <Text style={styles.emailLabel}>Signed in as:</Text>
+                    <Text style={styles.emailText}>{userEmail}</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.signOutButton}
+                    onPress={handleLogout}
+                  >
+                    <Text style={styles.signOutText}>Sign Out</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+
+      </View>
+
       <TextInput
         style={styles.search}
         placeholder="Search employee..."
@@ -201,6 +271,98 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#f4f4f7" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  header: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 16, 
+  }, 
+  
+  modalOverlay: { 
+    position: "absolute", 
+    top: 60, 
+    right: 16, 
+    left: 0, 
+    bottom: 0, 
+    backgroundColor: "transparent", 
+  }, 
+  
+  modalBackground: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 110,
+    paddingRight: 20,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  profileMenu: {
+    backgroundColor: "#FFF",
+    padding: 15,
+    width: 200,
+    borderRadius: 12,
+    elevation: 10,
+  },
+  profileTitle: { fontSize: 16, fontWeight: "700", marginBottom: 5 },
+  
+  profileName: { 
+    fontWeight: "700", 
+    marginBottom: 12, 
+  }, 
+  
+  signOutButton: { 
+    backgroundColor: "#003D82", 
+    paddingVertical: 8, 
+    borderRadius: 8, 
+    alignItems: "center", 
+  }, 
+  
+  signOutText: { 
+    color: "#fff", 
+    fontWeight: "700", 
+  }, 
+  
+  logoutIcon: { 
+    width: 40, 
+    height: 40, 
+    borderRadius: 20, 
+    backgroundColor: "#E5E5E5", 
+    justifyContent: "center", 
+    alignItems: "center", 
+  }, 
+  
+  email: { 
+    fontSize: 16, 
+    fontWeight: "700" 
+  }, 
+  
+  logoutBtn: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    backgroundColor: "#003D82", 
+    paddingVertical: 6, 
+    paddingHorizontal: 12, 
+    borderRadius: 8, 
+  },
+
+  emailBox: { 
+    backgroundColor: "#F0F6FF", 
+    padding: 8, 
+    borderRadius: 8, 
+    marginBottom: 12, 
+  }, 
+  
+  emailLabel: { 
+    fontSize: 12, 
+    color: "#666", 
+  }, 
+  
+  emailText: { 
+    fontSize: 13, 
+    fontWeight: "700", 
+    color: "#003D82", 
+    marginTop: 2, 
+  },
 
   title: {
     fontSize: 24,
