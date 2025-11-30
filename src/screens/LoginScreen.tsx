@@ -6,7 +6,6 @@ import { validateEmail, validatePassword } from "@/utils/validators";
 import { loginWithEmail, loginWithGoogleCredential } from "@/services/auth.service";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
-import { auth } from "../firebase.config";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,8 +28,10 @@ export default function LoginScreen({ navigation }: Props) {
       const { user, token } = await loginWithGoogleCredential(idToken);
       console.log("Logged in user:", user);
       console.log("Token:", token);
-      navigation.replace("Home");
+
+      navigation.replace("Home", { email: user.email || "" });
     } catch (err) {
+      console.error(err);
       setError("Google login failed");
     } finally {
       setLoading(false);
@@ -39,20 +40,24 @@ export default function LoginScreen({ navigation }: Props) {
 
   useEffect(() => {
     console.log("Google Response:", response);
+
     if (response?.type === "success") {
       const idToken = response.authentication?.idToken;
       if (!idToken) {
         setError("Google token missing");
         return;
       }
+
       handleGoogleLogin(idToken);
 
       (async () => {
         setLoading(true);
         try {
-          await loginWithGoogleCredential(idToken);
-          navigation.replace("Home");
+          const { user } = await loginWithGoogleCredential(idToken);
+          console.log("Logged in user (IIFE):", user);
+          navigation.replace("Home", { email: user.email || "" });
         } catch (err) {
+          console.error(err);
           setError("Google sign-in failed");
         } finally {
           setLoading(false);
@@ -68,8 +73,11 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await loginWithEmail(email, password);
-      navigation.replace("Home");
+      console.log("Email login success:", email);
+
+      navigation.replace("Home", { email });
     } catch (err: any) {
+      console.error(err);
       setError(err.message || "Login failed");
     } finally {
       setLoading(false);
@@ -108,6 +116,10 @@ export default function LoginScreen({ navigation }: Props) {
         disabled={!request || loading}
       >
         <Text style={styles.buttonText}>Sign in with Google</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => navigation.navigate("Register")} style={{ marginTop: 12 }}>
+        <Text>Don't have an account? Register</Text>
       </TouchableOpacity>
     </View>
   );
