@@ -6,26 +6,30 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   ActivityIndicator, 
-  Image
+  Image,
+  useColorScheme,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@/navigation/AppNavigator";
 import { validateEmail, validatePassword } from "@/utils/validators";
 import { loginWithEmail, loginWithGoogleCredential } from "@/services/auth.service";
 import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as AuthSession from 'expo-auth-session';
-
-WebBrowser.maybeCompleteAuthSession();
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 export default function LoginScreen({ navigation }: Props) {
+  const colorScheme = useColorScheme();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: "795457693256-djovcb5out0gd5ce30qljnoekgg7qmil.apps.googleusercontent.com",
@@ -61,60 +65,109 @@ export default function LoginScreen({ navigation }: Props) {
     if (!validateEmail(email)) return setError("Invalid email");
     if (!validatePassword(password)) return setError("Password min 6 char");
 
-    setLoading(true);
+    setEmailLoading(true);
+    setError(null);
+
     try {
-      const { user, token } = await loginWithEmail(email, password);
+      const { user } = await loginWithEmail(email, password);
       await AsyncStorage.setItem("userEmail", user.email || email);
       navigation.replace("Home", { email: user.email || "" });
     } catch (err: any) {
       setError(err.message || "Login failed");
     } finally {
-      setLoading(false);
+      setEmailLoading(false);
     }
   };
 
+
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/image1.png')} style={styles.logo} />
-      <Text style={styles.subtitle}>Enter valid username & password to continue</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.container, { backgroundColor: colorScheme === "dark" ? "#121212" : "#F7F9FC" }]}>
+          <Image source={require('../assets/image1.png')} style={styles.logo} />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Email"
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-      </View>
+          <Text style={[styles.subtitle, { color: colorScheme === "dark" ? "#E5E7EB" : "#6B7280" }]}>
+            Enter valid username & password to continue
+          </Text>
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Password"
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-      </View>
+          <View style={[styles.inputContainer, { 
+            backgroundColor: colorScheme === "dark" ? "#1E1E1E" : "#fff", 
+            borderColor: colorScheme === "dark" ? "#333" : "#E5E7EB"
+          }]}>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor={colorScheme === "dark" ? "#888" : "#999"}
+              style={[styles.input, { color: colorScheme === "dark" ? "#fff" : "#000" }]}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+          <View style={[styles.inputContainer, { 
+            backgroundColor: colorScheme === "dark" ? "#1E1E1E" : "#fff", 
+            borderColor: colorScheme === "dark" ? "#333" : "#E5E7EB"
+          }]}>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor={colorScheme === "dark" ? "#888" : "#999"}
+              style={[styles.input, { color: colorScheme === "dark" ? "#fff" : "#000" }]}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </View>
 
-      <TouchableOpacity style={styles.loginBtn} onPress={handleEmailLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginText}>Login</Text>}
-      </TouchableOpacity>
+          {error && <Text style={styles.error}>{error}</Text>}
 
-      <Text style={styles.or}>OR</Text>
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={handleEmailLogin}
+            disabled={emailLoading}
+          >
+            {emailLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginText}>Login</Text>
+            )}
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.googleBtn} onPress={() => promptAsync()} disabled={!request || loading}>
-        <Text style={styles.googleText}>Login with Google</Text>
-      </TouchableOpacity>
+          <Text style={[styles.or, { color: colorScheme === "dark" ? "#E5E7EB" : "#6B7280" }]}>OR</Text>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}> 
-        <Text style={styles.footerText}>Don't have an account? <Text style={styles.signUp}>Sign Up</Text></Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity
+            style={[styles.googleBtn, { 
+              backgroundColor: colorScheme === "dark" ? "#333" : "#fff",
+              borderColor: colorScheme === "dark" ? "#555" : "#E5E7EB"
+            }]}
+            onPress={() => promptAsync()}
+            disabled={!request || loading}
+          >
+            {loading ? (
+              <ActivityIndicator
+                color={colorScheme === "dark" ? "#E5E7EB" : "#003D82"}
+              />
+            ) : (
+              <Text style={[styles.googleText, { color: colorScheme === "dark" ? "#E5E7EB" : "#000" }]}>Login with Google</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <Text style={[styles.footerText, { color: colorScheme === "dark" ? "#E5E7EB" : "#6B7280" }]}>
+              Don't have an account?{" "}
+              <Text style={styles.signUp}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -123,21 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
-    backgroundColor: "#F7F9FC",
   },
-
-  header: {
-    fontSize: 32,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-
-  subtitle: {
-    textAlign: "center",
-    color: "#6B7280",
-    marginBottom: 30,
-  },
-
   logo: {
     width: 200,
     height: 200,
@@ -145,26 +184,25 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 20,
   },
-
+  subtitle: {
+    textAlign: "center",
+    marginBottom: 30,
+  },
   inputContainer: {
-    backgroundColor: "#fff",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
-
   input: {
     height: 44,
   },
-
   error: {
     color: "red",
     marginTop: 4,
+    textAlign: "center",
   },
-
   loginBtn: {
     backgroundColor: "#003D82",
     paddingVertical: 14,
@@ -172,39 +210,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: "center",
   },
-
-  loginText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-
+  loginText: { color: "#fff", fontWeight: "600" },
   or: {
     textAlign: "center",
     marginVertical: 14,
-    color: "#6B7280",
   },
-
   googleBtn: {
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
   },
-
   googleText: {
     fontWeight: "600",
   },
-
   footerText: {
     textAlign: "center",
     marginTop: 20,
-    color: "#6B7280",
   },
-  
-  signUp: {
-    color: "#003D82",
-    fontWeight: "600",
-  },
+  signUp: { color: "#003D82", fontWeight: "600" },
 });

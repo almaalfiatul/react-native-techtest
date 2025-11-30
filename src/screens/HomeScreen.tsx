@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   View,
   Text,
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  Image,
   TouchableOpacity,
   TextInput,
   Pressable,
@@ -46,9 +46,8 @@ const HomeScreen = ({ navigation }: { navigation: HomeScreenNavigationProp }) =>
   const fetchUsers = async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
-
-      const res = await fetch("https://jsonplaceholder.typicode.com/users");
-      const data = await res.json();
+      const res = await axios.get("https://jsonplaceholder.typicode.com/users");
+      const data = res.data;
 
       const formatted: Employee[] = data.map((u: any) => ({
       ...u,
